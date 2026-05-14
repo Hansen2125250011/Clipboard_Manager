@@ -68,10 +68,3 @@ lib/
 ├── services/     # Firebase and Cloud synchronization logic
 └── main.dart     # App entry point and State Management
 ```
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-Built with ❤️ using Flutter.
