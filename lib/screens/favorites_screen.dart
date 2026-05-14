@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:clipboard_history_manager/main.dart';
 import 'package:clipboard_history_manager/screens/history_screen.dart';
@@ -9,14 +10,20 @@ class FavoritesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9FB),
+      backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF7F9FB),
-        title: const Text(
+        backgroundColor: theme.colorScheme.surface,
+        automaticallyImplyLeading: false,
+        title: Text(
           'Item Tersimpan',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: GoogleFonts.inter(
+            fontWeight: FontWeight.w800,
+            color: theme.colorScheme.onSurface,
+            letterSpacing: -0.5,
+          ),
         ),
       ),
       body: Consumer<ClipboardProvider>(
@@ -28,12 +35,17 @@ class FavoritesScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.star_border_rounded, size: 64, color: Color(0xFFC3C6D6)),
+                  Icon(
+                    Icons.star_border_rounded, 
+                    size: 64, 
+                    color: isDark ? Colors.white24 : const Color(0xFFC3C6D6),
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     'Belum ada item favorit',
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: const Color(0xFF737785),
+                    style: GoogleFonts.inter(
+                      fontSize: 16,
+                      color: isDark ? Colors.white54 : const Color(0xFF737785),
                     ),
                   ),
                 ],

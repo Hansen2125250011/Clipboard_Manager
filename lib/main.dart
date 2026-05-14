@@ -9,6 +9,7 @@ import 'package:clipboard_history_manager/screens/history_screen.dart';
 import 'package:clipboard_history_manager/screens/login_screen.dart';
 import 'package:clipboard_history_manager/services/firebase_service.dart';
 import 'package:clipboard_history_manager/services/clipboard_listener.dart';
+import 'package:clipboard_history_manager/screens/main_screen.dart';
 import 'package:clipboard_history_manager/screens/onboarding_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -25,10 +26,14 @@ void main() async {
   final watcher = MyClipboardWatcher(clipboardProvider);
   watcher.start();
 
+  final themeProvider = ThemeProvider();
+  await themeProvider.loadTheme();
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: clipboardProvider),
+        ChangeNotifierProvider.value(value: themeProvider),
       ],
       child: const MyApp(),
     ),
@@ -40,21 +45,42 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = context.watch<ThemeProvider>();
+
     return MaterialApp(
       title: 'Clipboard Manager',
       debugShowCheckedModeBanner: false,
+      themeMode: themeProvider.themeMode,
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF0056D2),
+          brightness: Brightness.light,
           primary: const Color(0xFF0040A1),
           surface: const Color(0xFFF7F9FB),
           onSurface: const Color(0xFF191C1E),
+          surfaceContainer: const Color(0xFFECEEF0),
           secondary: const Color(0xFF515F74),
           error: const Color(0xFFBA1A1A),
         ),
         textTheme: GoogleFonts.interTextTheme(
-          Theme.of(context).textTheme,
+          ThemeData(brightness: Brightness.light).textTheme,
+        ),
+      ),
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFFB2C5FF),
+          brightness: Brightness.dark,
+          primary: const Color(0xFFB2C5FF),
+          surface: const Color(0xFF0B1326),
+          onSurface: const Color(0xFFDAE2FD),
+          surfaceContainer: const Color(0xFF171F33),
+          secondary: const Color(0xFFBCC7DE),
+          error: const Color(0xFFFFB4AB),
+        ),
+        textTheme: GoogleFonts.interTextTheme(
+          ThemeData(brightness: Brightness.dark).textTheme,
         ),
       ),
       home: const AuthWrapper(),
@@ -85,7 +111,7 @@ class AuthWrapper extends StatelessWidget {
               return const Scaffold(body: Center(child: CircularProgressIndicator()));
             }
             if (authSnapshot.hasData) {
-              return const HistoryScreen();
+              return const MainScreen();
             }
             return const LoginScreen();
           },
@@ -290,5 +316,36 @@ class ClipboardProvider with ChangeNotifier {
     _clips.clear();
     notifyListeners();
     await DBHelper().clearAll();
+  }
+}
+
+class ThemeProvider with ChangeNotifier {
+  ThemeMode _themeMode = ThemeMode.system;
+
+  ThemeMode get themeMode => _themeMode;
+
+  Future<void> loadTheme() async {
+    final prefs = await SharedPreferences.getInstance();
+    final modeStr = prefs.getString('themeMode') ?? 'system';
+    if (modeStr == 'light') {
+      _themeMode = ThemeMode.light;
+    } else if (modeStr == 'dark') {
+      _themeMode = ThemeMode.dark;
+    } else {
+      _themeMode = ThemeMode.system;
+    }
+    notifyListeners();
+  }
+
+  Future<void> setThemeMode(ThemeMode mode) async {
+    if (_themeMode == mode) return;
+    _themeMode = mode;
+    notifyListeners();
+
+    final prefs = await SharedPreferences.getInstance();
+    String modeStr = 'system';
+    if (mode == ThemeMode.light) modeStr = 'light';
+    if (mode == ThemeMode.dark) modeStr = 'dark';
+    await prefs.setString('themeMode', modeStr);
   }
 }

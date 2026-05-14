@@ -17,15 +17,27 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final List<OnboardingData> _pages = [
     OnboardingData(
       title: 'Selamat Datang di Clipboard Manager',
-      description: 'Kelola riwayat salinan Anda dengan mudah. Aplikasi ini menyimpan teks yang Anda salin secara otomatis di latar belakang.',
-      icon: Icons.history_edu_rounded,
+      description: 'Kelola riwayat salinan Anda dengan aman, cepat, dan terorganisasi dalam satu tempat terpusat.',
+      icon: Icons.assignment_turned_in_rounded,
       color: const Color(0xFF0056D2),
     ),
     OnboardingData(
-      title: 'Jangan Pernah Kehilangan Data',
-      description: 'Sinkronkan riwayat clipboard Anda secara otomatis dan akses dari perangkat mana pun.',
-      icon: Icons.cloud_sync_rounded,
+      title: 'Penyimpanan Latar Belakang',
+      description: 'Aplikasi secara otomatis menangkap teks dan tautan yang Anda salin tanpa mengganggu alur kerja Anda.',
+      icon: Icons.history_edu_rounded,
       color: const Color(0xFF0040A1),
+    ),
+    OnboardingData(
+      title: 'Kategori & Pencarian Cepat',
+      description: 'Temukan kembali salinan penting Anda dalam hitungan detik menggunakan pencarian cerdas dan filter kategori otomatis.',
+      icon: Icons.saved_search_rounded,
+      color: const Color(0xFF006591),
+    ),
+    OnboardingData(
+      title: 'Sinkronisasi Cloud Terenkripsi',
+      description: 'Akses seluruh riwayat salinan Anda dari perangkat mana pun dengan aman melalui sinkronisasi cloud waktu-nyata.',
+      icon: Icons.cloud_sync_rounded,
+      color: const Color(0xFF0056D2),
     ),
   ];
 
@@ -41,9 +53,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.colorScheme.surface,
       body: SafeArea(
         child: Column(
           children: [
@@ -55,7 +76,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   setState(() => _currentPage = index);
                 },
                 itemBuilder: (context, index) {
-                  return _buildPage(_pages[index]);
+                  return _buildPage(_pages[index], isDark);
                 },
               ),
             ),
@@ -67,7 +88,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   Row(
                     children: List.generate(
                       _pages.length,
-                      (index) => _buildDot(index),
+                      (index) => _buildDot(index, isDark),
                     ),
                   ),
                   ElevatedButton(
@@ -82,14 +103,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0056D2),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      backgroundColor: isDark ? theme.colorScheme.primary : const Color(0xFF0056D2),
+                      foregroundColor: isDark ? const Color(0xFF0B1326) : Colors.white,
+                      minimumSize: const Size(140, 60),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      elevation: 4,
+                      shadowColor: (isDark ? theme.colorScheme.primary : const Color(0xFF0056D2)).withValues(alpha: 0.3),
                     ),
                     child: Text(
                       _currentPage == _pages.length - 1 ? 'Mulai' : 'Lanjut',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+                      style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 16),
                     ),
                   ),
                 ],
@@ -101,7 +126,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  Widget _buildPage(OnboardingData data) {
+  Widget _buildPage(OnboardingData data, bool isDark) {
+    final theme = Theme.of(context);
+    final accentColor = isDark ? theme.colorScheme.primary : data.color;
+
     return Padding(
       padding: const EdgeInsets.all(40.0),
       child: Column(
@@ -111,10 +139,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             height: 200,
             width: 200,
             decoration: BoxDecoration(
-              color: data.color.withOpacity(0.1),
+              color: accentColor.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
-            child: Icon(data.icon, size: 100, color: data.color),
+            child: Icon(data.icon, size: 100, color: accentColor),
           ),
           const SizedBox(height: 64),
           Text(
@@ -123,7 +151,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             style: GoogleFonts.inter(
               fontSize: 28,
               fontWeight: FontWeight.w800,
-              color: const Color(0xFF191C1E),
+              color: theme.colorScheme.onSurface,
+              letterSpacing: -0.5,
             ),
           ),
           const SizedBox(height: 24),
@@ -132,7 +161,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
               fontSize: 16,
-              color: const Color(0xFF424654),
+              color: isDark ? Colors.white70 : const Color(0xFF424654),
               height: 1.5,
             ),
           ),
@@ -141,13 +170,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  Widget _buildDot(int index) {
-    return Container(
+  Widget _buildDot(int index, bool isDark) {
+    final theme = Theme.of(context);
+    final activeColor = isDark ? theme.colorScheme.primary : const Color(0xFF0056D2);
+    final inactiveColor = isDark ? theme.colorScheme.surfaceContainer : const Color(0xFFECEEF0);
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
       height: 8,
       width: _currentPage == index ? 24 : 8,
       margin: const EdgeInsets.only(right: 8),
       decoration: BoxDecoration(
-        color: _currentPage == index ? const Color(0xFF0056D2) : const Color(0xFFECEEF0),
+        color: _currentPage == index ? activeColor : inactiveColor,
         borderRadius: BorderRadius.circular(4),
       ),
     );

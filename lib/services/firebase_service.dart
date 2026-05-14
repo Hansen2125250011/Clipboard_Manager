@@ -40,6 +40,34 @@ class FirebaseService {
     }
   }
 
+  // Sign in with Email & Password
+  Future<User?> signInWithEmail(String email, String password) async {
+    try {
+      final UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      return userCredential.user;
+    } catch (e) {
+      debugPrint('Email Sign-In Error: $e');
+      rethrow;
+    }
+  }
+
+  // Register with Email & Password
+  Future<User?> registerWithEmail(String email, String password) async {
+    try {
+      final UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      return userCredential.user;
+    } catch (e) {
+      debugPrint('Email Registration Error: $e');
+      rethrow;
+    }
+  }
+
   // Sign Out
   Future<void> signOut() async {
     try {
@@ -48,7 +76,7 @@ class FirebaseService {
     await _auth.signOut();
   }
 
-  // Sync a single clip to Firestore
+  // Sync a single clip to Firestore (Disabled without Auth)
   Future<void> syncClip(String content) async {
     final user = currentUser;
     if (user == null) return;

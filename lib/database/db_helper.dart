@@ -28,12 +28,34 @@ class ClipItem {
   }
 
   factory ClipItem.fromMap(Map<String, dynamic> map) {
+    DateTime parsedTime = DateTime.now();
+    if (map['timestamp'] != null) {
+      try {
+        final ts = map['timestamp'];
+        if (ts is int) {
+          parsedTime = DateTime.fromMillisecondsSinceEpoch(ts);
+        } else {
+          parsedTime = DateTime.parse(ts.toString());
+        }
+      } catch (_) {}
+    }
+
+    bool fav = false;
+    if (map['isFavorite'] != null) {
+      fav = map['isFavorite'] == 1 || map['isFavorite'] == true || map['isFavorite'] == '1';
+    }
+
+    bool syn = false;
+    if (map['isSynced'] != null) {
+      syn = map['isSynced'] == 1 || map['isSynced'] == true || map['isSynced'] == '1';
+    }
+
     return ClipItem(
       id: map['id'],
-      content: map['content'],
-      timestamp: DateTime.parse(map['timestamp']),
-      isFavorite: map['isFavorite'] == 1,
-      isSynced: (map['isSynced'] ?? 0) == 1,
+      content: map['content']?.toString() ?? '',
+      timestamp: parsedTime,
+      isFavorite: fav,
+      isSynced: syn,
     );
   }
 }
@@ -102,7 +124,13 @@ class DBHelper {
   Future<List<ClipItem>> getUnsyncedClips() async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query('clips', where: 'isSynced = 0');
-    return List.generate(maps.length, (i) => ClipItem.fromMap(maps[i]));
+    final List<ClipItem> results = [];
+    for (var map in maps) {
+      try {
+        results.add(ClipItem.fromMap(map));
+      } catch (_) {}
+    }
+    return results;
   }
 
   // Update sync status
@@ -114,7 +142,13 @@ class DBHelper {
   Future<List<ClipItem>> getAllClips() async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query('clips', orderBy: 'timestamp DESC');
-    return List.generate(maps.length, (i) => ClipItem.fromMap(maps[i]));
+    final List<ClipItem> results = [];
+    for (var map in maps) {
+      try {
+        results.add(ClipItem.fromMap(map));
+      } catch (_) {}
+    }
+    return results;
   }
 
   Future<int> deleteClip(int id) async {
