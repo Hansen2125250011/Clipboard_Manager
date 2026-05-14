@@ -3,10 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:clipboard_history_manager/database/db_helper.dart';
 import 'package:clipboard_history_manager/screens/history_screen.dart';
 import 'package:clipboard_history_manager/screens/login_screen.dart';
 import 'package:clipboard_history_manager/services/firebase_service.dart';
+import 'package:clipboard_history_manager/services/clipboard_listener.dart';
+import 'package:clipboard_history_manager/screens/onboarding_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,10 +21,14 @@ void main() async {
     debugPrint('Firebase Error: $e');
   }
   
+  final clipboardProvider = ClipboardProvider()..loadClips();
+  final watcher = MyClipboardWatcher(clipboardProvider);
+  watcher.start();
+
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => ClipboardProvider()..loadClips()),
+        ChangeNotifierProvider.value(value: clipboardProvider),
       ],
       child: const MyApp(),
     ),
@@ -42,8 +50,12 @@ class MyApp extends StatelessWidget {
           primary: const Color(0xFF0040A1),
           surface: const Color(0xFFF7F9FB),
           onSurface: const Color(0xFF191C1E),
+          secondary: const Color(0xFF515F74),
+          error: const Color(0xFFBA1A1A),
         ),
-        fontFamily: 'Inter',
+        textTheme: GoogleFonts.interTextTheme(
+          Theme.of(context).textTheme,
+        ),
       ),
       home: const AuthWrapper(),
     );
@@ -55,18 +67,36 @@ class AuthWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+    return FutureBuilder<bool>(
+      future: _shouldShowOnboarding(),
+      builder: (context, onboardingSnapshot) {
+        if (onboardingSnapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
-        if (snapshot.hasData) {
-          return const HistoryScreen();
+
+        if (onboardingSnapshot.data == true) {
+          return const OnboardingScreen();
         }
-        return const LoginScreen();
+
+        return StreamBuilder<User?>(
+          stream: FirebaseAuth.instance.authStateChanges(),
+          builder: (context, authSnapshot) {
+            if (authSnapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(body: Center(child: CircularProgressIndicator()));
+            }
+            if (authSnapshot.hasData) {
+              return const HistoryScreen();
+            }
+            return const LoginScreen();
+          },
+        );
       },
     );
+  }
+
+  Future<bool> _shouldShowOnboarding() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('showOnboarding') ?? true;
   }
 }
 
@@ -134,6 +164,7 @@ class ClipboardProvider with ChangeNotifier {
         final newClip = ClipItem(
           content: content,
           timestamp: cloudClip['timestamp'],
+          isFavorite: cloudClip['isFavorite'] ?? false,
           isSynced: true,
         );
         await DBHelper().insertClip(newClip);
@@ -249,6 +280,9 @@ class ClipboardProvider with ChangeNotifier {
 
       // Background DB update
       await DBHelper().toggleFavorite(clip.id!, clip.isFavorite);
+      
+      // Sync to cloud
+      await _firebaseService.updateFavorite(clip.content, !clip.isFavorite);
     }
   }
 

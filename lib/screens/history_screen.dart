@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:clipboard_history_manager/main.dart';
 import 'package:clipboard_history_manager/database/db_helper.dart';
 import 'package:clipboard_history_manager/screens/settings_screen.dart';
+import 'package:clipboard_history_manager/screens/detail_screen.dart';
+import 'package:clipboard_history_manager/screens/favorites_screen.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -46,6 +48,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
               ),
             ),
             actions: [
+              IconButton(
+                icon: const Icon(Icons.star_outline_rounded, color: Color(0xFF424654)),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const FavoritesScreen()),
+                  );
+                },
+              ),
               IconButton(
                 icon: const Icon(Icons.settings_outlined, color: Color(0xFF424654)),
                 onPressed: () {
@@ -233,7 +244,12 @@ class SnippetCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: () => _copyToClipboard(context, clip.content),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => DetailScreen(clip: clip)),
+            );
+          },
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(

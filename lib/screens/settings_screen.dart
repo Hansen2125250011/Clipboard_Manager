@@ -1,96 +1,119 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:clipboard_history_manager/main.dart';
 import 'package:clipboard_history_manager/services/firebase_service.dart';
+import 'package:clipboard_history_manager/screens/statistics_screen.dart';
 
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
-}
-
-class _SettingsScreenState extends State<SettingsScreen> {
-  bool _notificationsEnabled = true;
-  final user = FirebaseService().currentUser;
-
-  @override
   Widget build(BuildContext context) {
+    final user = FirebaseService().currentUser;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FB),
       appBar: AppBar(
         backgroundColor: const Color(0xFFF7F9FB),
-        title: const Text(
-          'Pengaturan',
-          style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.bold),
-        ),
+        title: const Text('Pengaturan & Sinkronisasi', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(24),
         children: [
-          _buildSectionHeader('Akun'),
-          _buildSettingCard(
-            icon: Icons.account_circle_outlined,
-            title: user?.displayName ?? 'Pengguna',
-            subtitle: user?.email ?? 'Tidak ada email',
-            trailing: TextButton(
-              onPressed: () async {
-                await FirebaseService().signOut();
-                if (mounted) Navigator.pop(context);
-              },
-              child: const Text('Keluar', style: TextStyle(color: Color(0xFFBA1A1A))),
+          // Account Profile Section
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFECEEF0)),
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 30,
+                  backgroundColor: const Color(0xFF0056D2),
+                  backgroundImage: user?.photoURL != null ? NetworkImage(user!.photoURL!) : null,
+                  child: user?.photoURL == null ? const Icon(Icons.person, color: Colors.white, size: 30) : null,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        user?.displayName ?? 'Pengguna',
+                        style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 18),
+                      ),
+                      Text(
+                        user?.email ?? 'Tidak ada email',
+                        style: const TextStyle(color: Color(0xFF737785), fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 24),
-          _buildSectionHeader('Umum'),
-          _buildSettingCard(
-            icon: Icons.notifications_active_outlined,
-            title: 'Notifikasi Background',
-            subtitle: 'Selalu aktif untuk menangkap riwayat share',
-            trailing: Switch(
-              value: _notificationsEnabled,
-              onChanged: (value) {
-                setState(() {
-                  _notificationsEnabled = value;
-                });
-              },
-            ),
+          const SizedBox(height: 32),
+          
+          Text('Aplikasi', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: const Color(0xFF737785))),
+          const SizedBox(height: 12),
+          _buildSettingsTile(
+            icon: Icons.bar_chart_rounded,
+            title: 'Statistik Penggunaan',
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const StatisticsScreen())),
           ),
-          const SizedBox(height: 24),
-          _buildSectionHeader('Data'),
-          _buildSettingCard(
-            icon: Icons.delete_outline,
+          _buildSettingsTile(
+            icon: Icons.sync_rounded,
+            title: 'Sinkronisasi Cloud',
+            trailing: Switch(value: true, onChanged: (v) {}, activeColor: const Color(0xFF0056D2)),
+          ),
+          
+          const SizedBox(height: 32),
+          Text('Data', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: const Color(0xFF737785))),
+          const SizedBox(height: 12),
+          _buildSettingsTile(
+            icon: Icons.delete_sweep_rounded,
             title: 'Hapus Semua Riwayat',
-            subtitle: 'Tindakan ini tidak dapat dibatalkan',
             textColor: const Color(0xFFBA1A1A),
             onTap: () => _confirmClearAll(context),
+          ),
+          
+          const SizedBox(height: 48),
+          ElevatedButton(
+            onPressed: () async {
+              await FirebaseService().signOut();
+              if (context.mounted) Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFBA1A1A).withOpacity(0.1),
+              foregroundColor: const Color(0xFFBA1A1A),
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+            child: const Text('Keluar Akun', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(height: 24),
+          const Center(
+            child: Text(
+              'Versi 1.0.0',
+              style: TextStyle(color: Color(0xFFC3C6D6), fontSize: 12),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 8, bottom: 8),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontFamily: 'Inter',
-          fontWeight: FontWeight.bold,
-          color: Color(0xFF0056D2),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSettingCard({
+  Widget _buildSettingsTile({
     required IconData icon,
     required String title,
-    required String subtitle,
+    VoidCallback? onTap,
     Widget? trailing,
     Color? textColor,
-    VoidCallback? onTap,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -100,21 +123,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         border: Border.all(color: const Color(0xFFECEEF0)),
       ),
       child: ListTile(
+        leading: Icon(icon, color: textColor ?? const Color(0xFF0056D2)),
+        title: Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: textColor)),
+        trailing: trailing ?? const Icon(Icons.chevron_right_rounded, color: Color(0xFFC3C6D6)),
         onTap: onTap,
-        leading: Icon(icon, color: textColor ?? const Color(0xFF424654)),
-        title: Text(
-          title,
-          style: TextStyle(
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.w600,
-            color: textColor ?? const Color(0xFF191C1E),
-          ),
-        ),
-        subtitle: Text(
-          subtitle,
-          style: const TextStyle(fontFamily: 'Inter', fontSize: 12),
-        ),
-        trailing: trailing,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }
@@ -123,21 +136,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: const Text('Hapus Semua?'),
-        content: const Text('Semua riwayat clipboard akan dihapus secara permanen.'),
+        content: const Text('Seluruh data clipboard lokal akan dihapus permanen.'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Batal'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Batal')),
           TextButton(
             onPressed: () {
-              Provider.of<ClipboardProvider>(context, listen: false).clearAll();
+              context.read<ClipboardProvider>().clearAll();
               Navigator.pop(context);
             },
-            style: TextButton.styleFrom(foregroundColor: const Color(0xFFBA1A1A)),
-            child: const Text('Hapus Semua'),
+            child: const Text('Hapus', style: TextStyle(color: Color(0xFFBA1A1A))),
           ),
         ],
       ),

@@ -59,6 +59,7 @@ class FirebaseService {
         'timestamp': FieldValue.serverTimestamp(),
         'userId': user.uid,
         'userEmail': user.email,
+        'isFavorite': false, // Default to false when first synced
       });
       debugPrint('Clip synced to Firebase');
     } catch (e) {
@@ -81,13 +82,36 @@ class FirebaseService {
       return snapshot.docs.map((doc) {
         final data = doc.data();
         return {
+          'id': doc.id,
           'content': data['content'],
           'timestamp': (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
+          'isFavorite': data['isFavorite'] ?? false,
         };
       }).toList();
     } catch (e) {
       debugPrint('Firebase Fetch Error: $e');
       return [];
+    }
+  }
+  
+  // Update favorite status in Firestore
+  Future<void> updateFavorite(String content, bool isFavorite) async {
+    final user = currentUser;
+    if (user == null) return;
+
+    try {
+      final snapshot = await _firestore
+          .collection('clips')
+          .where('userId', isEqualTo: user.uid)
+          .where('content', isEqualTo: content)
+          .limit(1)
+          .get();
+      
+      if (snapshot.docs.isNotEmpty) {
+        await snapshot.docs.first.reference.update({'isFavorite': isFavorite});
+      }
+    } catch (e) {
+      debugPrint('Firebase Update Error: $e');
     }
   }
 }
